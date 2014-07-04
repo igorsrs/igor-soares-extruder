@@ -11,20 +11,20 @@ use <MCAD/involute_gears.scad>
 //choose(export);
 //plate();
 
-//joined_planets_upper_sun_plate();
+joined_planets_upper_sun_plate();
 
 //upper_planets_sun_plate();
 //lower_planets_sun_plate();
 //housing();
 //sun_with_coupler();
 
-ring_with_supports();
+//ring_with_supports();
 
 //planet_assembly_plate();
 
 
 // choose the object to render
-export=0;// [0:Input,1:Output]
+//export=0;// [0:Input,1:Output]
 // outer diameter of ring
 D=36;
 // thickness
@@ -37,7 +37,7 @@ tol=0.10;
 vtol=0.5;
 number_of_planets=4;
 number_of_teeth_on_planets=6;
-approximate_number_of_teeth_on_sun=10;
+approximate_number_of_teeth_on_sun=6;
 // difference in teeth on ring gears
 delta=2;
 // number of teeth to twist across
@@ -89,7 +89,7 @@ upper_sun_screw_nut_width = 5.8;
 upper_sun_screw_nut_h = 0.02;
 upper_sun_halves_clearence = 1;
 
-input_shaft_diameter = 5.7;
+input_shaft_diameter = 4;
 input_coupler_h=10;
 input_coupler_minor_diameter=11.5;
 input_coupler_diameter=22;
