@@ -4,8 +4,8 @@
 // Modified by Igor Soares
 // http://www.thingiverse.com/igorbpsoares
 
-use <write/Write.scad>
-use <MCAD/involute_gears.scad>
+use <../write/Write.scad>
+use <../MCAD/involute_gears.scad>
 
 //assembly();
 //choose(export);
