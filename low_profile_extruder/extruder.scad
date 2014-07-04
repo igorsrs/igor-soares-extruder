@@ -76,7 +76,8 @@ module extruder_base(
   base_screw_r=BASE_SCREWS_DIAMETER/2,
   base_screw_nut_r=BASE_SCREWS_NUT_WIDTH/(2*cos(30)),
   screw_hotend_distance=BASE_SCREW_HOTEND_DISTANCE,
-  hotend_body_r=HOTEND_BODY_DIAMETER/2
+  hotend_body_r=HOTEND_BODY_DIAMETER/2,
+  angle=90
 ) {
   w = 2*hotend_body_r + 2*wall;
   h=wall;
@@ -106,7 +107,8 @@ module extruder_base_screws(
   base_screw_r=BASE_SCREWS_DIAMETER/2,
   base_screw_nut_r=BASE_SCREWS_NUT_WIDTH/(2*cos(30)),
   screw_hotend_distance=BASE_SCREW_HOTEND_DISTANCE,
-  hotend_body_r=HOTEND_BODY_DIAMETER/2
+  hotend_body_r=HOTEND_BODY_DIAMETER/2,
+  angle=90
 ) {
   w = 2*hotend_body_r + 2*wall;
   h=wall;
@@ -169,7 +171,8 @@ module extruder(
   idler_pressure_screw_nut_r=IDLER_PRESSURE_SCREW_NUT_WIDTH/(2*cos(30)),
   idler_pressure_screw_nut_h=IDLER_PRESSURE_SCREW_NUT_H,
   idler_pressure_screw_z_pos=IDLER_PRESSURE_SCREW_Z_POS,
-  idler_pressure_screw_x_pos=IDLER_PRESSURE_SCREW_Y_POS
+  idler_pressure_screw_x_pos=IDLER_PRESSURE_SCREW_Y_POS,
+  angle=90
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
   axis_h = hotend_body_above_groove_h + hobbed_bolt_r;
@@ -216,7 +219,7 @@ bearing_width +ST;
       translate([second_bearing_pos, axis_pos, axis_h]) 
         rotate([0,90,0])
       {
-          for(a=[60,180]) rotate([0,0,a])
+          for(a=[90]) rotate([0,0,a])
             translate([0, bearing_r + gearbox_screw_r + ST, 0])
               cylinder(r=gearbox_screw_r + wall,
                        h=bearing_width + lwall);
@@ -242,9 +245,9 @@ bearing_width +ST;
       //}
 
       //flat bottom
-      translate([first_bearing_pos, 0, 0])
-        cube([second_bearing_pos - first_bearing_pos,
-              axis_pos + bearing_r,
+      translate([0, axis_pos - wall - base_screw_r, 0])
+        cube([second_bearing_pos + lwall + bearing_width,
+              2*(wall + base_screw_r),
               wall]);
       //third bearing reinforcement
       //translate([second_bearing_pos, axis_pos, axis_h + bearing_r])
@@ -334,7 +337,7 @@ bearing_width +ST;
     translate([second_bearing_pos -1, axis_pos, axis_h]) 
       rotate([0,90,0])
     {
-        for(a=[60,180]) rotate([0,0,a])
+        for(a=[90]) rotate([0,0,a])
           translate([0, bearing_r + gearbox_screw_r + ST, 0])
         #cylinder(r=gearbox_screw_r,
                   h=bearing_width + lwall +2);
@@ -392,7 +395,7 @@ bearing_width +ST;
       #cylinder(r=idler_holder_screw_head_r,
                 h=idler_holder_screw_head_room_h +1);
     translate([wall_support_pos[0], wall_support_pos[1],
-               hotend_body_above_groove_h + hsupport])
+               idler_holder_screw_head_room_h + hsupport])
       #cylinder(r=idler_holder_screw_r,
                 h=idler_pressure_screw_z_pos + 2*idler_holder_screw_nut_r +
                   lwall);
