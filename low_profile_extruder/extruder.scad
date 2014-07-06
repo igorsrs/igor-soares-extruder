@@ -19,19 +19,27 @@
 
 include <configuration.scad>
 
-second_bearing_pos = 35;
+second_bearing_pos = 30;
 gears_shafts_distance = 33;
 SCREW_MOUNT_DISTANCE = 26;
 MOTOR_SHAFT_H = 21;
-MOTOR_SCREW_WALL = 6.5;
+MOTOR_SCREW_WALL = 5;
+MOTOR_HOLDER_WIDTH = 5;
+MOTOR_HOLDER_SCREW_MOUNT = 26;
+MOTOR_HOLDER_SCREW_DIAMETER=3.4;
+MOTOR_SIZE = [36,36];
+FIST_BEARING_SCREW_ANGLE = 120;
+INVERT_MOTOR_SIDE = true;
+MOTOR_SCREW = 3.4;
+IDLER_H = 16;
+IDLER_W = 15;
+
 
 AXIS_H = HOTEND_BODY_ABOVE_GROOVE_H + HOBBED_BOLT_DIAMETER/2;
 MOTOR_SHAFT_POS = sqrt(
                     gears_shafts_distance*gears_shafts_distance -
                     (MOTOR_SHAFT_H-AXIS_H)*(MOTOR_SHAFT_H-AXIS_H));
-MOTOR_SCREW = 3.4;
-IDLER_H = 16;
-IDLER_W = 15;
+INVERT_MOTOR_FLAG = (INVERT_MOTOR_SIDE) ? 1 : 0;
 $fn=64;
 
 //extruder_with_supports_original_orientation();
@@ -188,6 +196,30 @@ bearing_width +ST;
            (second_bearing_pos - first_bearing_pos)/
            (gears_shafts_distance - wall_support_pos[1] + 2*wall));
 
+  flat_bottom_bearing_width = (axis_h > bearing_r + wall) ?
+                                ST :
+                                2*bearing_r*sin(
+                                    acos( (axis_h-wall-bearing_r)/bearing_r)
+                                  ) + 2*lwall;
+  motor_holder_size_from_axis = MOTOR_SHAFT_POS + MOTOR_HOLDER_SCREW_MOUNT/2 +
+                                MOTOR_SCREW_WALL +MOTOR_HOLDER_SCREW_DIAMETER/2;
+  motor_holder_size_from_base = MOTOR_SHAFT_H - MOTOR_SIZE[1]/2;
+  motor_holder_top = MOTOR_SHAFT_H + MOTOR_HOLDER_SCREW_MOUNT/2 +
+                                MOTOR_SCREW_WALL +MOTOR_HOLDER_SCREW_DIAMETER/2;
+
+  motor_pos = MOTOR_SHAFT_POS - MOTOR_SIZE[0]/2;
+
+  angle_diagonal = -atan(
+                     (second_bearing_pos + lwall + bearing_width
+                        - MOTOR_HOLDER_WIDTH)/
+                     (motor_holder_size_from_axis - flat_bottom_bearing_width/2)
+                   );
+  mount_plante_diagonal_angle = -atan(
+    ((bearing_r + wall) + (MOTOR_SHAFT_POS -MOTOR_HOLDER_SCREW_MOUNT/2 -
+                           MOTOR_SCREW_WALL - MOTOR_HOLDER_SCREW_DIAMETER/2))/
+   (motor_holder_top - axis_h)
+  );
+
   difference() {
     union() {
       extruder_base(
@@ -206,11 +238,12 @@ bearing_width +ST;
         rotate([0,90,0])
           cylinder(r=bearing_r + wall, h=bearing_width + lwall);
       //first bearing holding screw
-      translate([first_bearing_pos -lwall, axis_pos,
-                 axis_h + bearing_r + gearbox_screw_r + ST]) 
-        rotate([0,90,0])
-          cylinder(r=gearbox_screw_r + wall,
-                   h=bearing_width + lwall);
+      translate([first_bearing_pos - lwall, axis_pos, axis_h]) 
+        rotate([0,90,0]) rotate([0,0,FIST_BEARING_SCREW_ANGLE]) {
+          translate([0, bearing_r + gearbox_screw_r + ST, 0])
+            cylinder(r=gearbox_screw_r + wall,
+                     h=bearing_width + lwall);
+      }
 
       //second bearing
       translate([second_bearing_pos, axis_pos, axis_h]) 
@@ -225,52 +258,53 @@ bearing_width +ST;
                        h=bearing_width + lwall);
       }
 
-      //motor
-      translate([second_bearing_pos + lwall + bearing_width,
-                 axis_pos + MOTOR_SHAFT_POS,
-                 MOTOR_SHAFT_H])
-        rotate([0,-90,0]) rotate([0,0,90])
-        motor_mount(screw_w=MOTOR_SCREW_WALL);
-      // gear shaft
-      //translate([second_bearing_pos, axis_pos + gears_shafts_distance, axis_h]) 
-      //  rotate([0,90,0])
-      //    cylinder(r=bearing_r + wall, h=bearing_width + lwall);
-      //translate([second_bearing_pos, axis_pos + gears_shafts_distance, axis_h])
-      //  rotate([0,90,0])
-      //{
-      //    for(a=[0,195]) rotate([0,0,a])
-      //      translate([0, bearing_r + gearbox_screw_r + ST, 0])
-      //        cylinder(r=gearbox_screw_r + wall,
-      //                 h=bearing_width + lwall);
-      //}
+      //motor holder
+      translate([0, axis_pos, 0]) mirror([0,INVERT_MOTOR_FLAG,0]) {
+        //mount plate
+        translate([second_bearing_pos + lwall + bearing_width,
+                   MOTOR_SHAFT_POS,
+                   MOTOR_SHAFT_H])
+          rotate([0,-90,0]) rotate([0,0,90])
+            motor_mount(screw_w=MOTOR_SCREW_WALL,
+                        wall=MOTOR_HOLDER_WIDTH,
+                        screw_mount=MOTOR_HOLDER_SCREW_MOUNT,
+                        screw_r=MOTOR_HOLDER_SCREW_DIAMETER/2);
+        //base
+        translate([second_bearing_pos + lwall + bearing_width, 0, 0])
+          mirror([1,0,0]) cube([MOTOR_HOLDER_WIDTH, motor_holder_size_from_axis,
+                                motor_holder_size_from_base +ST]);
+        //inter bearing reinforcement
+        translate([first_bearing_pos, motor_pos, axis_h - lwall/2])
+          mirror([0,1,0])
+          cube([second_bearing_pos - first_bearing_pos + lwall +bearing_width,
+                wall, lwall]);
+
+        //diagonal reinforcement
+        translate([0, flat_bottom_bearing_width/2, 0])
+          rotate([0,0,angle_diagonal])
+            cube([wall,
+                  (motor_holder_size_from_axis - flat_bottom_bearing_width/2)/
+                    cos(angle_diagonal),
+                  motor_holder_size_from_base]);
+
+        //diagonal reinforcement in the mount plate plane
+        translate([second_bearing_pos +bearing_width + lwall - lwall,
+                   -bearing_r - wall,
+                   axis_h])
+          rotate([mount_plante_diagonal_angle,0,0])
+          cube([lwall, wall,
+                (motor_holder_top - axis_h)/cos(mount_plante_diagonal_angle)]);
+      }
 
       //flat bottom
       translate([0, axis_pos - wall - base_screw_r, 0])
         cube([second_bearing_pos + lwall + bearing_width,
               2*(wall + base_screw_r),
               wall]);
-      //third bearing reinforcement
-      //translate([second_bearing_pos, axis_pos, axis_h + bearing_r])
-      //  cube([bearing_width,
-      //        gears_shafts_distance,
-      //        lwall]);
-      translate([second_bearing_pos, axis_pos, 0])
-        cube([bearing_width,
-              gears_shafts_distance,
-              lwall]);
-      translate([first_bearing_pos, wall_support_pos[1], 0])
-        rotate([0,0,-a1])
-        cube([bearing_width,
-              (gears_shafts_distance - wall_support_pos[1] + 2*wall)/cos(a1),
-              lwall]);
-      translate([first_bearing_pos,
-                 axis_pos + bearing_r + wall,
-                 hotend_body_above_groove_h +idler_pressure_screw_z_pos +
-                   idler_pressure_screw_r + idler_holder_screw_nut_h - lwall])
-        rotate([0,0,-90])
-        cube([wall,
-              (second_bearing_pos - first_bearing_pos + bearing_width + lwall),
-              lwall]);
+      translate([0, axis_pos - flat_bottom_bearing_width/2, 0])
+        cube([first_bearing_pos + wall + 2*bearing_width,
+              flat_bottom_bearing_width,
+              wall]);
 
       //pressure screw wall
       translate([-hotend_body_r, 0,0])
@@ -290,14 +324,13 @@ bearing_width +ST;
 
 
       //idler holding screws
-      translate([-idler_width/2 - idler_holder_screw_r,
-                 -hotend_body_r - idler_holder_screw_head_r -lwall, 0])
-        cylinder(r=idler_holder_screw_r + wall,
-                 h=hotend_body_above_groove_h);
-      translate([idler_width/2 + idler_holder_screw_r,
-                 -hotend_body_r - idler_holder_screw_head_r -lwall, 0])
-        cylinder(r=idler_holder_screw_r + wall,
-                 h=hotend_body_above_groove_h);
+      translate([0,
+                 -hotend_body_r - idler_holder_screw_head_r -lwall,
+                 hotend_body_above_groove_h/2])
+        cube([2*(idler_holder_screw_r + lwall) + idler_width +
+                2*idler_holder_screw_r,
+              2*(idler_holder_screw_r + wall),
+              hotend_body_above_groove_h], center=true);
     }
     #extruder_base_screws(
       wall=STRUCTURAL_WALL_WIDTH,
@@ -323,11 +356,12 @@ bearing_width +ST;
         #cylinder(r=bearing_r,
                   h=2*bearing_width);
     //first bearing holding screw
-    translate([first_bearing_pos -lwall -1, axis_pos,
-               axis_h + bearing_r + gearbox_screw_r + ST]) 
-      rotate([0,90,0])
+    translate([first_bearing_pos - lwall -1, axis_pos, axis_h]) 
+      rotate([0,90,0]) rotate([0,0,FIST_BEARING_SCREW_ANGLE]) {
+          translate([0, bearing_r + gearbox_screw_r + ST, 0])
         #cylinder(r=gearbox_screw_r,
                   h=bearing_width + lwall +2);
+    }
 
     //second bearing for the hobbed bolt
     translate([second_bearing_pos +lwall, axis_pos, axis_h]) 
