@@ -20,14 +20,15 @@
 include <configuration.scad>
 
 second_bearing_pos = 30;
-gears_shafts_distance = 33;
+gears_shafts_distance = GEAR_SHAFTS_DISTANCE;
 SCREW_MOUNT_DISTANCE = 26;
-MOTOR_SHAFT_H = 21;
+MOTOR_SHAFT_H = 25;
 MOTOR_SCREW_WALL = 5;
 MOTOR_HOLDER_WIDTH = 5;
-MOTOR_HOLDER_SCREW_MOUNT = 26;
+MOTOR_HOLDER_SCREW_MOUNT = 31;
+MOTOR_HOLDER_INNER_DIAMETER = 33;
 MOTOR_HOLDER_SCREW_DIAMETER=3.4;
-MOTOR_SIZE = [36,36];
+MOTOR_SIZE = [43,43];
 FIST_BEARING_SCREW_ANGLE = 120;
 INVERT_MOTOR_SIDE = true;
 MOTOR_SCREW = 3.4;
@@ -266,6 +267,7 @@ bearing_width +ST;
                    MOTOR_SHAFT_H])
           rotate([0,-90,0]) rotate([0,0,90])
             motor_mount(screw_w=MOTOR_SCREW_WALL,
+                        r=MOTOR_HOLDER_INNER_DIAMETER/2,
                         wall=MOTOR_HOLDER_WIDTH,
                         screw_mount=MOTOR_HOLDER_SCREW_MOUNT,
                         screw_r=MOTOR_HOLDER_SCREW_DIAMETER/2);
@@ -288,11 +290,11 @@ bearing_width +ST;
                   motor_holder_size_from_base]);
 
         //diagonal reinforcement in the mount plate plane
-        translate([second_bearing_pos +bearing_width + lwall - lwall,
+        translate([second_bearing_pos +bearing_width + lwall - wall,
                    -bearing_r - wall,
-                   axis_h])
+                   axis_h - ST])
           rotate([mount_plante_diagonal_angle,0,0])
-          cube([lwall, wall,
+          cube([wall, wall,
                 (motor_holder_top - axis_h)/cos(mount_plante_diagonal_angle)]);
       }
 

@@ -6,41 +6,48 @@
 // Licensed under the BSD license.
 include <../MCAD/involute_gears.scad> 
 include <../MCAD/teardrop.scad> 
+include <configuration.scad>
 
 // set to 0 for meshed gears, 1 for printing plate with gears flipped and laid flat
 printing = 1;
 
 // OPTIONS COMMON TO BOTH GEARS:
-distance_between_axles = 33.000;
-gear_h = 8;
+distance_between_axles = GEAR_SHAFTS_DISTANCE;
+gear_h = 7;
 gear_shaft_h = 10;
-gear_short_shaft_h = 7;
+gear_short_shaft_h = 5;
+GEAR_TWIST = 1;
 
 // THIS SCRIPT IS MODIFIED TO FIT A eMaker HUXLEY (Pro) EXTRUDER WITH M6 HOBBED BOLT.
 
 // GEAR1 (SMALLER GEAR, STEPPER GEAR) OPTIONS:
 // It's helpful to choose prime numbers for the gear teeth.
-gear1_teeth = 6;				// was 11 for Greg/Wade
+gear1_teeth = 5;				// was 11 for Greg/Wade
+gear1_facets = 16;
 gear1_shaft_d = 5.4;  			// diameter of motor shaft
 gear1_shaft_r  = gear1_shaft_d/2;	
+gear1_extra_base = 5;
 // gear1 shaft assumed to fill entire gear.
 // gear1 attaches by means of a captive nut and bolt (or actual setscrew)
-gear1_setscrew_offset = gear_h / 2;			// Distance from motor on motor shaft.
 gear1_setscrew_d         = 3 / cos(180 / 8) + 0.4;
 gear1_setscrew_r          = gear1_setscrew_d/2;
 gear1_captive_nut_d = 5.5 / cos(180 / 6) + 0.4;
 gear1_captive_nut_r  = gear1_captive_nut_d/2;
 gear1_captive_nut_h = 2.6;
+gear1_captive_nut_spacing = 1;
+gear1_setscrew_offset = 5.5/2;			// Distance from motor on motor shaft.
 
 
 // GEAR2 (LARGER GEAR, DRIVE SHAFT GEAR) OPTIONS:
-gear2_teeth = 37;			// was 45 for Wade/Greg
+gear2_teeth = 29;			// was 45 for Wade/Greg
 gear2_shaft_d = 5.3;		// was 8.3 for Wade/Greg
 gear2_shaft_r  = gear2_shaft_d/2;
-gear2_thickness = 4;
+gear2_thickness = 6;
 gear2_sunken_face = 1;
+gear2_clearance = 0.5;
+gear2_backlash = 0.5;
 // gear2 has settable outer shaft diameter.
-gear2_shaft_outer_d = 15;	//was 20 for Wade/Greg
+gear2_shaft_outer_d = 16;	//was 20 for Wade/Greg
 gear2_shaft_outer_r  = gear2_shaft_outer_d/2;
 
 // gear2 has a hex bolt set in it, is either a hobbed bolt or has the nifty hobbed gear from MBI on it.
@@ -69,7 +76,7 @@ motor_mount_access_radius = sqrt(((27 / 2) * (31 / 2)) * 2);
 
 // Tolerances for geometry connections.
 AT=0.02;
-ST=AT*2;
+//ST=AT*2;
 TT=AT/2;
 
 
@@ -86,7 +93,7 @@ module bridge_helper()
 
 
 
-module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
+module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 {
 	cp = 360*d/(t1+t2);
 
@@ -119,7 +126,9 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
 						rim_width = 0,
 						hub_thickness = (gear_h/2)+TT, 
 						hub_width = 0,
-						bore_diameter=0);
+						bore_diameter=0,
+                involute_facets=gear1_facets,
+                clearance=0);
 	
 				translate([0,0,(gear_h/2) + TT]) rotate([180,0,0]) 
 					gear(	twist = -g1twist, 
@@ -128,9 +137,12 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
 						gear_thickness = (gear_h/2)+TT, 
 						rim_thickness = (gear_h/2)+TT, 
 						hub_thickness = (gear_h/2)+TT, 
-						bore_diameter=0); 
+						bore_diameter=0,
+                involute_facets=gear1_facets,
+                clearance=0);
 				translate([0, 0, (gear_h) - TT])
-					cylinder(r=3+g1p_r + (cp / 180),
+					cylinder(r=gear1_extra_base + g1p_r +
+                                                     (cp / 180),
                                                   h=gear_shaft_h);
 			}
 			//DIFFERENCE:
@@ -144,11 +156,20 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
 				cylinder(r=gear1_setscrew_r, h=g1p_d + (cp / 180), $fn=8);
 
 			//setscrew captive nut
-			translate([(4+g1p_r)/2, 0, gear_h+gear_shaft_h-gear1_setscrew_offset]) 
+			translate([gear1_shaft_r + gear1_captive_nut_h/2 +
+                                   gear1_captive_nut_spacing + ST,
+                                   0,
+                                   gear_h+gear_shaft_h-gear1_setscrew_offset]) 
 				union() {
-					translate([0, 0, gear1_captive_nut_r])
-						cube([gear1_captive_nut_h, gear1_captive_nut_d * cos(30), gear1_setscrew_offset+ST],center=true);
-					rotate([0, 90, 0])
+					translate([-gear1_captive_nut_h/2,
+                                                   -gear1_captive_nut_d/2,
+                                                   0])
+						#cube([
+                                  gear1_captive_nut_h,
+                                  gear1_captive_nut_d,
+                                  gear1_setscrew_offset+ 
+                                  4*gear1_captive_nut_r*(1-cos(30)) +ST]);
+					rotate([0, 90, 0]) rotate([0,0,30])
 						cylinder(h=gear1_captive_nut_h, r=gear1_captive_nut_r, center=true, $fn=6);
 				}
 			
@@ -172,7 +193,9 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
 						rim_width = gear2_rim_margin,
 						hub_diameter = gear2_shaft_outer_d,
 						hub_thickness = (gear_h/2)+TT, 
-						bore_diameter=0); 
+						bore_diameter=0,
+                clearance=gear2_clearance,
+                backlash=gear2_backlash); 
 	
 				translate([0,0,(gear_h/2) + TT]) rotate([180,0,0])
 					gear(	twist = g2twist, 
@@ -183,7 +206,9 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=1, which=1)
 						rim_width = gear2_rim_margin,
 						hub_diameter = gear2_shaft_outer_d,
 						hub_thickness = (gear_h/2)+TT, 
-						bore_diameter=0); 
+						bore_diameter=0,
+                clearance=gear2_clearance,
+                backlash=gear2_backlash); 
 			}
 			//DIFFERENCE:
 			//shafthole
@@ -262,7 +287,7 @@ g2p_r   = g2p_d/2;
 
 /*gear1*/
 
-//rotate([180,0,0])
+translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
  union() {
   translate([printing * cp / -35, 0, 0])
 	render()
@@ -270,11 +295,13 @@ g2p_r   = g2p_d/2;
 			intersection() {
 				union() {
 				  translate([0, 0, 0])
-                                    cylinder(r1=g1p_r, r2=g1p_r + gear_h/2,
+                                    cylinder(r1= g1p_r,
+                                             r2=g1p_r + gear_h/2,
                                              h=gear_h/2 +0.1);
 				  translate([0, 0, gear_h/2])
-                                    cylinder(r2=g1p_r, r1=g1p_r + gear_h/2,
-                                              h=gear_h/2 +0.1);
+                                    cylinder(r2=g1p_r,
+                                             r1=g1p_r + gear_h/2,
+                                             h=gear_h/2 +0.1);
 				  translate([0, 0, gear_h])
                                     cylinder(r1=g1p_r, r2=g1p_r + gear_shaft_h,
                                               h=gear_shaft_h +0.1);
@@ -290,18 +317,19 @@ g2p_r   = g2p_d/2;
 
 /*gear2*/
 
-//translate([0, 0, gear_h * printing]) rotate([180 * printing, 0, 0])
-//	render()
-//		translate([g2p_r,0,0])  rotate([0,0,($t*360/gear2_teeth)*-1]) {
-//			intersection() {
-//				/*union() {
-//					translate([0, 0, 0]) cylinder(r1=g2p_r, r2=g2p_r + (cp / 180), h=(cp / 180));
-//					translate([0, 0, (cp / 180) - 0.01]) cylinder(r=g2p_r + (cp / 180), h=10.02 - (cp / 180) - (cp / 180));
-//					translate([0, 0, 10 - (cp / 180)]) cylinder(r2=g2p_r, r1=g2p_r + (cp / 180), h=(cp / 180));
-//					translate([0, 0, 10]) cylinder(r1=g2p_r, r2=g2p_r + (cp / 180) + 0.1, h=(cp / 180) + 0.2);
-//				}*/
-//				gearsbyteethanddistance(t1 = gear1_teeth, t2=gear2_teeth, d=distance_between_axles, which=2);
-//			}
-//		}
+translate([2, 0, gear_h * printing]) rotate([180 * printing, 0, 0])
+	render()
+		translate([g2p_r,0,0])  rotate([0,0,($t*360/gear2_teeth)*-1]) {
+			intersection() {
+				union() {
+					translate([0, 0, 0]) cylinder(r1=g2p_r, r2=g2p_r + (cp / 180), h=(cp / 180));
+					translate([0, 0, (cp / 180) - 0.01])
+cylinder(r=g2p_r + (cp / 180), h=gear_h + 0.02 - (cp / 180) - (cp / 180));
+					translate([0, 0, gear_h - (cp / 180)]) cylinder(r2=g2p_r, r1=g2p_r + (cp / 180), h=(cp / 180));
+					//translate([0, 0, 10]) cylinder(r1=g2p_r, r2=g2p_r + (cp / 180) + 0.1, h=(cp / 180) + 0.2);
+				}
+				gearsbyteethanddistance(t1 = gear1_teeth, t2=gear2_teeth, d=distance_between_axles, which=2);
+			}
+		}
 
 //translate([0, 37, 0]) import_stl("gregs-accessible-wade.stl");
