@@ -280,7 +280,7 @@ bearing_width +ST;
                 wall, lwall]);
 
         //diagonal reinforcement
-        translate([0, flat_bottom_bearing_width/2, 0])
+        translate([ST, flat_bottom_bearing_width/2, 0])
           rotate([0,0,angle_diagonal])
             cube([wall,
                   (motor_holder_size_from_axis - flat_bottom_bearing_width/2)/
