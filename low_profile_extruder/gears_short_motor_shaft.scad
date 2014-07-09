@@ -12,11 +12,12 @@ include <configuration.scad>
 printing = 1;
 
 // OPTIONS COMMON TO BOTH GEARS:
-distance_between_axles = GEAR_SHAFTS_DISTANCE;
+distance_between_axles = GEAR_SHAFTS_DISTANCE - 0.5;
 gear_h = 7;
 gear_shaft_h = 10;
 gear_short_shaft_h = 5;
 GEAR_TWIST = 1;
+gears_pressure_angle = 15;
 
 // THIS SCRIPT IS MODIFIED TO FIT A eMaker HUXLEY (Pro) EXTRUDER WITH M6 HOBBED BOLT.
 
@@ -26,7 +27,7 @@ gear1_teeth = 5;				// was 11 for Greg/Wade
 gear1_facets = 16;
 gear1_shaft_d = 5.4;  			// diameter of motor shaft
 gear1_shaft_r  = gear1_shaft_d/2;	
-gear1_extra_base = 5;
+gear1_extra_base = 3;
 // gear1 shaft assumed to fill entire gear.
 // gear1 attaches by means of a captive nut and bolt (or actual setscrew)
 gear1_setscrew_d         = 3 / cos(180 / 8) + 0.4;
@@ -43,9 +44,9 @@ gear2_teeth = 29;			// was 45 for Wade/Greg
 gear2_shaft_d = 5.3;		// was 8.3 for Wade/Greg
 gear2_shaft_r  = gear2_shaft_d/2;
 gear2_thickness = 6;
-gear2_sunken_face = 1;
-gear2_clearance = 0.5;
-gear2_backlash = 0.5;
+gear2_sunken_face = 0;
+gear2_clearance = 0.8;
+gear2_backlash = 0.8;
 // gear2 has settable outer shaft diameter.
 gear2_shaft_outer_d = 16;	//was 20 for Wade/Greg
 gear2_shaft_outer_r  = gear2_shaft_outer_d/2;
@@ -71,7 +72,7 @@ gear2_captive_nut_r  = gear2_captive_nut_d/2;
 gear2_captive_nut_h = 0;
 
 // distance from center of M8 shaft to closest motor screw, so we can position access holes appropriately
-motor_mount_access_radius = sqrt(((27 / 2) * (31 / 2)) * 2);
+motor_mount_access_radius = 23; // was sqrt(((27 / 2) * (31 / 2)) * 2);
 
 
 // Tolerances for geometry connections.
@@ -119,6 +120,7 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 			{
 				translate([0,0,(gear_h/2) - TT])
 					gear(	twist = g1twist, 
+                                                pressure_angle=gears_pressure_angle,
 						number_of_teeth=t1, 
 						circular_pitch=cp, 
 						gear_thickness = gear_shaft_h + (gear_h/2)+TT,
@@ -132,6 +134,7 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 	
 				translate([0,0,(gear_h/2) + TT]) rotate([180,0,0]) 
 					gear(	twist = -g1twist, 
+                                                pressure_angle=gears_pressure_angle,
 						number_of_teeth=t1, 
 						circular_pitch=cp, 
 						gear_thickness = (gear_h/2)+TT, 
@@ -186,6 +189,7 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 			{
 				translate([0,0,(gear_h/2) - TT])
 					gear(	twist = -g2twist, 
+                                                pressure_angle=gears_pressure_angle,
 						number_of_teeth=t2, 
 						circular_pitch=cp, 
 						gear_thickness = (gear_h/2)+TT, 
@@ -199,6 +203,7 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 	
 				translate([0,0,(gear_h/2) + TT]) rotate([180,0,0])
 					gear(	twist = g2twist, 
+                                                pressure_angle=gears_pressure_angle,
 						number_of_teeth=t2, 
 						circular_pitch=cp, 
 						gear_thickness = (gear_h/2)+TT, 
@@ -244,20 +249,20 @@ module gearsbyteethanddistance(t1=13,t2=51, d=60, teethtwist=GEAR_TWIST,which=1)
 				}
 
 			// motor mount access screw
-			/*for(i = [0:7]) {
+			for(i = [0:7]) {
 				rotate([0, 0, (45 * i) + 22.5])
 					translate([motor_mount_access_radius, 0, gear_h / 2])
 					rotate([0, 90, 90])
 						teardrop(3, gear_h * 2, 90);
-			}*/
+			}
 
 			// weight/plastic reduction and branding
-			//for (i = [0:7]) {
-			//	rotate([0, 0, 45 * i])
-			//	translate([gear2_shaft_outer_r + (g2p_r / 6) + AT, 0, gear_h / 2])
-			//		rotate([0, 90, 0])
-			//		teardrop(g2p_r / 7, gear_h * 2, 90);
-			//}
+			for (i = [0:7]) {
+				rotate([0, 0, 45 * i])
+				translate([gear2_shaft_outer_r + (g2p_r / 4) + AT, 0, gear_h / 2])
+					rotate([0, 90, 0])
+					teardrop(g2p_r / 7, gear_h * 2, 90);
+			}
 		}
 
 		// hex bolt shaft bridge aid.
@@ -287,7 +292,8 @@ g2p_r   = g2p_d/2;
 
 /*gear1*/
 
-translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
+if(false)
+//translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
  union() {
   translate([printing * cp / -35, 0, 0])
 	render()
@@ -306,7 +312,7 @@ translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
                                     cylinder(r1=g1p_r, r2=g1p_r + gear_shaft_h,
                                               h=gear_shaft_h +0.1);
 				}
-				gearsbyteethanddistance(t1 = gear1_teeth, t2=gear2_teeth, d=distance_between_axles, which=1);
+				gearsbyteethanddistance(t1 = gear1_teeth, t2=gear2_teeth, d=distance_between_axles, which=1, $fn=64);
 			}
 		}
 //translate([printing * cp / -35 - g1p_r, 0, 0])
@@ -317,6 +323,7 @@ translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
 
 /*gear2*/
 
+//if(false)
 translate([2, 0, gear_h * printing]) rotate([180 * printing, 0, 0])
 	render()
 		translate([g2p_r,0,0])  rotate([0,0,($t*360/gear2_teeth)*-1]) {

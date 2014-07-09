@@ -47,13 +47,13 @@ $fn=64;
 //top_bearing_holder();
 
 
-mirror([0,1,0]) extruder_with_support();
-mirror([0,1,0])
-translate([7.5,
-           -4,
-           HOTEND_BODY_ABOVE_GROOVE_H])
-  rotate([0,0,180])
-    %idler(axis_h=HOBBED_BOLT_DIAMETER/2);
+//mirror([0,1,0]) extruder_with_support();
+//mirror([0,1,0])
+//translate([7.5,
+//           -4,
+//           HOTEND_BODY_ABOVE_GROOVE_H])
+//  rotate([0,0,180])
+//    %idler(axis_h=HOBBED_BOLT_DIAMETER/2);
 //mirror([0,1,0])
 //translate([7.5,
 //           -13,
@@ -67,7 +67,7 @@ translate([7.5,
 //mirror([0,1,0]) rotate([-90,0,0]) idler();
 
 //holder
-//idler_holder();
+idler_holder();
 
 module streched_cylinder(r=1, strech=0, h=1) {
   union() {
@@ -589,9 +589,9 @@ module idler(
           cylinder(r=bearing_r - ST, h=width);
 
       //filament guide arm
-      translate([width/2 + filament_room_r,0, pressure_screw_z - screw_r])
-      mirror([0,1,0])
-        cube([wall, guide_h, wall]);
+      //translate([width/2 + filament_room_r,0, pressure_screw_z - screw_r])
+      //mirror([0,1,0])
+      //  cube([wall, guide_h, wall]);
     }
     translate([width/2 + bearing_width/2, 0, axis_h])
       rotate([0,-90,0])
@@ -631,13 +631,37 @@ module idler_holder(
   idler_h=IDLER_H,
   width=IDLER_W,
   idler_length=10,
-  idler_holder_screw_r=IDLER_HOLDER_SCREW_DIAMETER/2
+  idler_holder_screw_r=IDLER_HOLDER_SCREW_DIAMETER/2,
+  guide_r=FILAMENT_ROOM_DIAMETER/2,
+  guide_h=10,
+  guide_pos=HOTEND_BODY_DIAMETER/2 + IDLER_HOLDER_SCREW_HEAD_DIAMETER/2 +
+            WALL_WIDTH,
+  vsupport=HORIZONTAL_SUPPORT_WALL,
+  hsupport=VERTICAL_SUPPORT_WALL
 ) {
   difference() {
     union() {
-      translate([-lwall, -wall - idler_holder_screw_r, 0])
-        cube([width + 2*lwall, 2*wall + 2*idler_holder_screw_r,
-              lwall + idler_h]);
+      translate([-lwall - 2*idler_holder_screw_r,
+                 -wall - idler_holder_screw_r,
+                 -guide_h + lwall])
+        difference()
+      {
+        cube([width + 2*lwall +4*idler_holder_screw_r,
+              2*wall + 2*idler_holder_screw_r,
+              guide_h + idler_h]);
+        translate([vsupport, vsupport, -1])
+          #cube([width + 2*lwall +4*idler_holder_screw_r - 2*vsupport,
+                 2*wall + 2*idler_holder_screw_r - 2*vsupport,
+                 guide_h - lwall +1]);
+      }
+      translate([width/2 -lwall - guide_r,
+                 0,
+                 -guide_h + lwall])
+         cube([2*(guide_r + lwall), guide_pos, guide_h]);
+
+      translate([width/2, guide_pos, -guide_h + lwall])
+        cylinder(r=guide_r + lwall, h=guide_h);
+
       translate([-idler_holder_screw_r, 0, 0])
         cylinder(r=idler_holder_screw_r + lwall, h=lwall + idler_h);
       translate([width + idler_holder_screw_r, 0, 0])
@@ -645,10 +669,13 @@ module idler_holder(
     }
     translate([-ST, -wall - idler_holder_screw_r -1, lwall +ST])
         cube([width + 2*ST, 2*wall + 2*idler_holder_screw_r +2, idler_h +1]);
-    translate([-idler_holder_screw_r, 0, -1])
+    translate([-idler_holder_screw_r, 0, hsupport])
       cylinder(r=idler_holder_screw_r, h=lwall + idler_h +2);
-    translate([width + idler_holder_screw_r, 0, -1])
+    translate([width + idler_holder_screw_r, 0, hsupport])
       cylinder(r=idler_holder_screw_r, h=lwall + idler_h +2);
+
+    translate([width/2, guide_pos, -guide_h + lwall -1])
+      #cylinder(r=guide_r, h=guide_h +2);
   }
 }
 
