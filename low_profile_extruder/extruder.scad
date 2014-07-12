@@ -53,7 +53,7 @@ $fn=64;
 //           -4,
 //           HOTEND_BODY_ABOVE_GROOVE_H])
 //  rotate([0,0,180])
-//    %idler(axis_h=HOBBED_BOLT_DIAMETER/2);
+//    idler(axis_h=5.0);
 //mirror([0,1,0])
 //translate([7.5,
 //           -13,
@@ -64,10 +64,10 @@ $fn=64;
 
 //idler only
 //translate([0, -10, 9.85])
-//mirror([0,1,0]) rotate([-90,0,0]) idler();
+mirror([0,1,0]) rotate([-90,0,0]) idler(axis_h=5.0);
 
 //holder
-idler_holder();
+//idler_holder();
 
 module streched_cylinder(r=1, strech=0, h=1) {
   union() {
@@ -567,7 +567,7 @@ module idler(
   width=IDLER_W -0.4,
   bearing_r=5.0,
   bearing_bore_r=1.7,
-  bearing_width=3.8,
+  bearing_width=4.4,
   bearing_screw_head_r = 3,
   bearing_screw_head_h = 3,
   bearing_screw_nut_width = 5.8,
@@ -575,7 +575,7 @@ module idler(
   screw_r=1.8,
   screw_nut_r=IDLER_PRESSURE_SCREW_NUT_WIDTH/(2*cos(30)),
   screw_nut_h=IDLER_PRESSURE_SCREW_NUT_H,
-  second_pos=6,
+  second_pos=8,
   pressure_screw_z=IDLER_PRESSURE_SCREW_Z_POS,
   pressure_screw_y=IDLER_PRESSURE_SCREW_Y_POS,
   filament_room_r=FILAMENT_ROOM_DIAMETER/2,
@@ -595,7 +595,7 @@ module idler(
     }
     translate([width/2 + bearing_width/2, 0, axis_h])
       rotate([0,-90,0])
-        #cylinder(r=bearing_r, h=bearing_width);
+        #cylinder(r=bearing_r+2*HORIZONTAL_SUPPORT_WALL, h=bearing_width);
 
     //bearing screw
     translate([-1, 0, axis_h])

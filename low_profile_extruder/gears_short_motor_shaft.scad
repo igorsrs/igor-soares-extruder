@@ -292,7 +292,7 @@ g2p_r   = g2p_d/2;
 
 /*gear1*/
 
-if(false)
+//if(false)
 //translate([0,0, gear_h + gear_shaft_h]) rotate([180,0,0])
  union() {
   translate([printing * cp / -35, 0, 0])
