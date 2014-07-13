@@ -19,66 +19,9 @@
 
 include <configuration.scad>
 
-second_bearing_pos = 30;
-gears_shafts_distance = GEAR_SHAFTS_DISTANCE;
-SCREW_MOUNT_DISTANCE = 26;
-MOTOR_SHAFT_H = 25;
-MOTOR_SCREW_WALL = 5;
-MOTOR_HOLDER_WIDTH = 5;
-MOTOR_HOLDER_SCREW_MOUNT = 31;
-MOTOR_HOLDER_INNER_DIAMETER = 33;
-MOTOR_HOLDER_SCREW_DIAMETER=3.4;
-MOTOR_SIZE = [43,43];
-FIST_BEARING_SCREW_ANGLE = 120;
-INVERT_MOTOR_SIDE = true;
-MOTOR_SCREW = 3.4;
-IDLER_H = 16;
-IDLER_W = 15;
-
-
-AXIS_H = HOTEND_BODY_ABOVE_GROOVE_H + HOBBED_BOLT_DIAMETER/2;
-MOTOR_SHAFT_POS = sqrt(
-                    gears_shafts_distance*gears_shafts_distance -
-                    (MOTOR_SHAFT_H-AXIS_H)*(MOTOR_SHAFT_H-AXIS_H));
-INVERT_MOTOR_FLAG = (INVERT_MOTOR_SIDE) ? 1 : 0;
 $fn=64;
 
-//extruder_with_supports_original_orientation();
-//top_bearing_holder();
-
-
-//mirror([0,1,0]) extruder_with_support();
-//mirror([0,1,0])
-//translate([7.5,
-//           -4,
-//           HOTEND_BODY_ABOVE_GROOVE_H])
-//  rotate([0,0,180])
-//    idler(axis_h=5.0);
-//mirror([0,1,0])
-//translate([7.5,
-//           -13,
-//           HOTEND_BODY_ABOVE_GROOVE_H + IDLER_H + STRUCTURAL_WALL_WIDTH +1])
-//    rotate([0,180,0])
-//  idler_holder();
-
-
-//idler only
-//translate([0, -10, 9.85])
-mirror([0,1,0]) rotate([-90,0,0]) idler(axis_h=5.0);
-
-//holder
-//idler_holder();
-
-module streched_cylinder(r=1, strech=0, h=1) {
-  union() {
-    translate([-strech/2, 0,0])
-      cylinder(r=r, h=h);
-    translate([-strech/2, -r,0])
-      cube([strech, 2*r, h]);
-    translate([strech/2, 0,0])
-      cylinder(r=r, h=h);
-  }
-}
+mirror([0,1,0]) extruder_with_support();
 
 module extruder_base(
   wall=STRUCTURAL_WALL_WIDTH,
@@ -157,19 +100,9 @@ module extruder(
   bearing_r=BEARING_DIAMETER/2,
   bearing_access_r=BEARING_ACCESS_HOLE_DIAMETER/2,
   bearing_width=BEARING_WIDTH,
+  bearing_screw_r=BEARING_SCREW_DIAMETER/2,
   hobbed_bolt_r=HOBBED_BOLT_DIAMETER/2,
-  hobbed_input_gear_r=HOBBED_INPUT_GEAR_DIAMETER/2,
-  filament_room_r=FILAMENT_ROOM_DIAMETER/2,
   filament_r=FILAMENT_APROX_DIAMETER/2,
-  gearbox_y_pos=GEARBOX_Y_POS,
-  gearbox_z_pos=GEARBOX_Z_POS,
-  gearbox_room_r=GEARBOX_ROOM_DIAMETER/2,
-  gearbox_screws_distance=GEARBOX_SCREWS_DISTANCE,
-  gearbox_screw_r=GEARBOX_SCREW_DIAMETER/2,
-  gearbox_output_gear_r=GEARBOX_OUTPUT_GEAR_DIAMETER/2,
-  gearbox_output_h=GEARBOX_OUTPUT_H,
-  gearbox_arm_width=GEARBOX_ARM_WIDTH,
-  idler_h=IDLER_H,
   idler_width=IDLER_W,
   idler_holder_screw_r=IDLER_HOLDER_SCREW_DIAMETER/2,
   idler_holder_screw_head_r=IDLER_HOLDER_SCREW_HEAD_DIAMETER/2,
@@ -177,11 +110,21 @@ module extruder(
   idler_holder_screw_nut_r=IDLER_HOLDER_SCREW_NUT_WIDTH/(2*cos(30)),
   idler_holder_screw_nut_h=IDLER_HOLDER_SCREW_NUT_H,
   idler_pressure_screw_r=IDLER_PRESSURE_SCREW_DIAMETER/2,
-  idler_pressure_screw_nut_r=IDLER_PRESSURE_SCREW_NUT_WIDTH/(2*cos(30)),
-  idler_pressure_screw_nut_h=IDLER_PRESSURE_SCREW_NUT_H,
   idler_pressure_screw_z_pos=IDLER_PRESSURE_SCREW_Z_POS,
   idler_pressure_screw_x_pos=IDLER_PRESSURE_SCREW_Y_POS,
-  angle=90
+  gears_shafts_distance=GEAR_SHAFTS_DISTANCE,
+  second_bearing_pos=SECOND_BEARING_POS,
+  motor_screw_r=MOTOR_SCREW_DIAMETER/2,
+  motor_screw_mount=MOTOR_SCREW_MOUNT,
+  motor_screw_wall=MOTOR_SCREW_WALL,
+  motor_mount_width=MOTOR_MOUNT_WIDTH,
+  motor_mount_inner_r=MOTOR_HOLDER_INNER_DIAMETER/2,
+  motor_shaft_h=MOTOR_SHAFT_H,
+  motor_shaft_pos=MOTOR_SHAFT_POS,
+  motor_size=MOTOR_SIZE,
+  fist_bearing_screw_angular_pos=FIST_BEARING_SCREW_ANGLE,
+  invert_motor=INVERT_MOTOR_SIDE,
+  angle=ANGLE
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
   axis_h = hotend_body_above_groove_h + hobbed_bolt_r;
@@ -190,7 +133,7 @@ module extruder(
 bearing_width +ST;
 
   wall_support_pos = [
-    filament_room_r - idler_holder_screw_r,
+    filament_r - idler_holder_screw_r,
     axis_pos + bearing_access_r + lwall + idler_holder_screw_r,
     0];
   a1 = atan(
@@ -202,24 +145,25 @@ bearing_width +ST;
                                 2*bearing_r*sin(
                                     acos( (axis_h-wall-bearing_r)/bearing_r)
                                   ) + 2*lwall;
-  motor_holder_size_from_axis = MOTOR_SHAFT_POS + MOTOR_HOLDER_SCREW_MOUNT/2 +
-                                MOTOR_SCREW_WALL +MOTOR_HOLDER_SCREW_DIAMETER/2;
-  motor_holder_size_from_base = MOTOR_SHAFT_H - MOTOR_SIZE[1]/2;
-  motor_holder_top = MOTOR_SHAFT_H + MOTOR_HOLDER_SCREW_MOUNT/2 +
-                                MOTOR_SCREW_WALL +MOTOR_HOLDER_SCREW_DIAMETER/2;
+  motor_holder_size_from_axis = motor_shaft_pos + motor_screw_mount/2 +
+                                motor_screw_wall +motor_screw_r;
+  motor_holder_size_from_base = motor_shaft_h - motor_size[1]/2;
+  motor_holder_top = motor_shaft_h + motor_screw_mount/2 +
+                                motor_screw_wall +motor_screw_r;
 
-  motor_pos = MOTOR_SHAFT_POS - MOTOR_SIZE[0]/2;
+  motor_pos = motor_shaft_pos - motor_size[0]/2;
 
   angle_diagonal = -atan(
                      (second_bearing_pos + lwall + bearing_width
-                        - MOTOR_HOLDER_WIDTH)/
+                        - motor_mount_width)/
                      (motor_holder_size_from_axis - flat_bottom_bearing_width/2)
                    );
   mount_plante_diagonal_angle = -atan(
-    ((bearing_r + wall) + (MOTOR_SHAFT_POS -MOTOR_HOLDER_SCREW_MOUNT/2 -
-                           MOTOR_SCREW_WALL - MOTOR_HOLDER_SCREW_DIAMETER/2))/
+    ((bearing_r + wall) + (motor_shaft_pos -motor_screw_mount/2 -
+                           motor_screw_wall - motor_screw_r))/
    (motor_holder_top - axis_h)
   );
+  invert_motor_flag=(invert_motor) ? 1 : 0;
 
   difference() {
     union() {
@@ -240,9 +184,9 @@ bearing_width +ST;
           cylinder(r=bearing_r + wall, h=bearing_width + lwall);
       //first bearing holding screw
       translate([first_bearing_pos - lwall, axis_pos, axis_h]) 
-        rotate([0,90,0]) rotate([0,0,FIST_BEARING_SCREW_ANGLE]) {
-          translate([0, bearing_r + gearbox_screw_r + ST, 0])
-            cylinder(r=gearbox_screw_r + wall,
+        rotate([0,90,0]) rotate([0,0,fist_bearing_screw_angular_pos]) {
+          translate([0, bearing_r + bearing_screw_r + ST, 0])
+            cylinder(r=bearing_screw_r + wall,
                      h=bearing_width + lwall);
       }
 
@@ -254,26 +198,26 @@ bearing_width +ST;
         rotate([0,90,0])
       {
           for(a=[90]) rotate([0,0,a])
-            translate([0, bearing_r + gearbox_screw_r + ST, 0])
-              cylinder(r=gearbox_screw_r + wall,
+            translate([0, bearing_r + bearing_screw_r + ST, 0])
+              cylinder(r=bearing_screw_r + wall,
                        h=bearing_width + lwall);
       }
 
       //motor holder
-      translate([0, axis_pos, 0]) mirror([0,INVERT_MOTOR_FLAG,0]) {
+      translate([0, axis_pos, 0]) mirror([0,invert_motor_flag,0]) {
         //mount plate
         translate([second_bearing_pos + lwall + bearing_width,
-                   MOTOR_SHAFT_POS,
-                   MOTOR_SHAFT_H])
+                   motor_shaft_pos,
+                   motor_shaft_h])
           rotate([0,-90,0]) rotate([0,0,90])
-            motor_mount(screw_w=MOTOR_SCREW_WALL,
-                        r=MOTOR_HOLDER_INNER_DIAMETER/2,
-                        wall=MOTOR_HOLDER_WIDTH,
-                        screw_mount=MOTOR_HOLDER_SCREW_MOUNT,
-                        screw_r=MOTOR_HOLDER_SCREW_DIAMETER/2);
+            motor_mount(screw_w=motor_screw_wall,
+                        r=motor_mount_inner_r,
+                        wall=motor_mount_width,
+                        screw_mount=motor_screw_mount,
+                        screw_r=motor_screw_r);
         //base
         translate([second_bearing_pos + lwall + bearing_width, 0, 0])
-          mirror([1,0,0]) cube([MOTOR_HOLDER_WIDTH, motor_holder_size_from_axis,
+          mirror([1,0,0]) cube([motor_mount_width, motor_holder_size_from_axis,
                                 motor_holder_size_from_base +ST]);
         //inter bearing reinforcement
         translate([first_bearing_pos, motor_pos, axis_h - lwall/2])
@@ -359,9 +303,9 @@ bearing_width +ST;
                   h=2*bearing_width);
     //first bearing holding screw
     translate([first_bearing_pos - lwall -1, axis_pos, axis_h]) 
-      rotate([0,90,0]) rotate([0,0,FIST_BEARING_SCREW_ANGLE]) {
-          translate([0, bearing_r + gearbox_screw_r + ST, 0])
-        #cylinder(r=gearbox_screw_r,
+      rotate([0,90,0]) rotate([0,0,fist_bearing_screw_angular_pos]) {
+          translate([0, bearing_r + bearing_screw_r + ST, 0])
+        #cylinder(r=bearing_screw_r,
                   h=bearing_width + lwall +2);
     }
 
@@ -374,8 +318,8 @@ bearing_width +ST;
       rotate([0,90,0])
     {
         for(a=[90]) rotate([0,0,a])
-          translate([0, bearing_r + gearbox_screw_r + ST, 0])
-        #cylinder(r=gearbox_screw_r,
+          translate([0, bearing_r + bearing_screw_r + ST, 0])
+        #cylinder(r=bearing_screw_r,
                   h=bearing_width + lwall +2);
     }
 
@@ -385,25 +329,20 @@ bearing_width +ST;
       rotate([0,90,0])
         #cylinder(r=bearing_access_r,
                   h=second_bearing_pos + wall+bearing_width +lwall + hotend_body_r);
-    //romoving one wall from the second bearing
-    //translate([second_bearing_pos - ST, axis_pos + bearing_r + ST, 0])
-    //  #cube([bearing_width + lwall + 2*ST, wall, axis_h + bearing_r + wall]);
  
     //no part can be below z=0
-    translate([0, axis_pos - hobbed_input_gear_r - wall, -ST])
+    translate([0, -bearing_r - wall, -ST])
       mirror([0,0,1])
-        #cube([second_bearing_pos + 2*(bearing_width + lwall) +
-                 gearbox_output_h +2*ST,
-               hobbed_input_gear_r + wall + gearbox_y_pos +
-                 gearbox_room_r + wall,
-               bearing_r + wall + gearbox_room_r]);
+        #cube([second_bearing_pos + 2*(bearing_width + lwall) +2*ST,
+               2*(bearing_r + wall),
+               bearing_r + wall]);
 
     //idler holding screws
     translate([-idler_width/2 - idler_holder_screw_r,
                -hotend_body_r - idler_holder_screw_head_r -lwall,
                idler_holder_screw_head_room_h + hsupport])
       #cylinder(r=idler_holder_screw_r,
-               h=hotend_body_above_groove_h + idler_h);
+               h=hotend_body_above_groove_h +1);
     translate([-idler_width/2 - idler_holder_screw_r,
                -hotend_body_r - idler_holder_screw_head_r -lwall,
                -1])
@@ -413,18 +352,12 @@ bearing_width +ST;
                -hotend_body_r - idler_holder_screw_head_r -lwall,
                idler_holder_screw_head_room_h + hsupport])
       #cylinder(r=idler_holder_screw_r,
-               h=hotend_body_above_groove_h + idler_h);
+               h=hotend_body_above_groove_h + 1);
     translate([idler_width/2 + idler_holder_screw_r,
                -hotend_body_r - idler_holder_screw_head_r -lwall,
                -1])
       #cylinder(r=idler_holder_screw_head_r,
                h=idler_holder_screw_head_room_h +1);
-     //idler room
-    translate([-idler_width/2 -ST, 0, hotend_body_above_groove_h + ST])
-      mirror([0,1,0])
-        cube([idler_width + 2*ST,
-              hotend_body_r + 2*wall + 2*idler_holder_screw_head_r,
-              idler_h +ST]);
 
     //wall reinforcement
     translate([wall_support_pos[0], wall_support_pos[1],-1])
@@ -463,19 +396,9 @@ module extruder_with_support(
   bearing_r=BEARING_DIAMETER/2,
   bearing_access_r=BEARING_ACCESS_HOLE_DIAMETER/2,
   bearing_width=BEARING_WIDTH,
+  bearing_screw_r=BEARING_SCREW_DIAMETER/2,
   hobbed_bolt_r=HOBBED_BOLT_DIAMETER/2,
-  hobbed_input_gear_r=HOBBED_INPUT_GEAR_DIAMETER/2,
-  filament_room_r=FILAMENT_ROOM_DIAMETER/2,
   filament_r=FILAMENT_APROX_DIAMETER/2,
-  gearbox_y_pos=GEARBOX_Y_POS,
-  gearbox_z_pos=GEARBOX_Z_POS,
-  gearbox_room_r=GEARBOX_ROOM_DIAMETER/2,
-  gearbox_screws_distance=GEARBOX_SCREWS_DISTANCE,
-  gearbox_screw_r=GEARBOX_SCREW_DIAMETER/2,
-  gearbox_output_gear_r=GEARBOX_OUTPUT_GEAR_DIAMETER/2,
-  gearbox_output_h=GEARBOX_OUTPUT_H,
-  gearbox_arm_width=GEARBOX_ARM_WIDTH,
-  idler_h=IDLER_H,
   idler_width=IDLER_W,
   idler_holder_screw_r=IDLER_HOLDER_SCREW_DIAMETER/2,
   idler_holder_screw_head_r=IDLER_HOLDER_SCREW_HEAD_DIAMETER/2,
@@ -483,10 +406,21 @@ module extruder_with_support(
   idler_holder_screw_nut_r=IDLER_HOLDER_SCREW_NUT_WIDTH/(2*cos(30)),
   idler_holder_screw_nut_h=IDLER_HOLDER_SCREW_NUT_H,
   idler_pressure_screw_r=IDLER_PRESSURE_SCREW_DIAMETER/2,
-  idler_pressure_screw_nut_r=IDLER_PRESSURE_SCREW_NUT_WIDTH/(2*cos(30)),
-  idler_pressure_screw_nut_h=IDLER_PRESSURE_SCREW_NUT_H,
   idler_pressure_screw_z_pos=IDLER_PRESSURE_SCREW_Z_POS,
-  idler_pressure_screw_x_pos=IDLER_PRESSURE_SCREW_Y_POS
+  idler_pressure_screw_x_pos=IDLER_PRESSURE_SCREW_Y_POS,
+  gears_shafts_distance=GEAR_SHAFTS_DISTANCE,
+  second_bearing_pos=SECOND_BEARING_POS,
+  motor_screw_r=MOTOR_SCREW_DIAMETER/2,
+  motor_screw_mount=MOTOR_SCREW_MOUNT,
+  motor_screw_wall=MOTOR_SCREW_WALL,
+  motor_mount_width=MOTOR_MOUNT_WIDTH,
+  motor_mount_inner_r=MOTOR_HOLDER_INNER_DIAMETER/2,
+  motor_shaft_h=MOTOR_SHAFT_H,
+  motor_shaft_pos=MOTOR_SHAFT_POS,
+  motor_size=MOTOR_SIZE,
+  fist_bearing_screw_angular_pos=FIST_BEARING_SCREW_ANGLE,
+  invert_motor=INVERT_MOTOR_SIDE,
+  angle=ANGLE
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
   axis_h = hotend_body_above_groove_h + hobbed_bolt_r;
@@ -508,19 +442,9 @@ bearing_width +ST;
       bearing_r=bearing_r,
       bearing_access_r=bearing_access_r,
       bearing_width=bearing_width,
+      bearing_screw_r=bearing_screw_r,
       hobbed_bolt_r=hobbed_bolt_r,
-      hobbed_input_gear_r=hobbed_input_gear_r,
-      filament_room_r=filament_room_r,
       filament_r=filament_r,
-      gearbox_y_pos=gearbox_y_pos,
-      gearbox_z_pos=gearbox_z_pos,
-      gearbox_room_r=gearbox_room_r,
-      gearbox_screws_distance=gearbox_screws_distance,
-      gearbox_screw_r=gearbox_screw_r,
-      gearbox_output_gear_r=gearbox_output_gear_r,
-      gearbox_output_h=gearbox_output_h,
-      gearbox_arm_width=gearbox_arm_width,
-      idler_h=idler_h,
       idler_width=idler_width,
       idler_holder_screw_r=idler_holder_screw_r,
       idler_holder_screw_head_r=idler_holder_screw_head_r,
@@ -528,10 +452,21 @@ bearing_width +ST;
       idler_holder_screw_nut_r=idler_holder_screw_nut_r,
       idler_holder_screw_nut_h=idler_holder_screw_nut_h,
       idler_pressure_screw_r=idler_pressure_screw_r,
-      idler_pressure_screw_nut_r=idler_pressure_screw_nut_r,
-      idler_pressure_screw_nut_h=idler_pressure_screw_nut_h,
       idler_pressure_screw_z_pos=idler_pressure_screw_z_pos,
-      idler_pressure_screw_x_pos=idler_pressure_screw_x_pos
+      idler_pressure_screw_x_pos=idler_pressure_screw_x_pos,
+      gears_shafts_distance=gears_shafts_distance,
+      second_bearing_pos=second_bearing_pos,
+      motor_screw_r=motor_screw_r,
+      motor_screw_mount=motor_screw_mount,
+      motor_screw_wall=motor_screw_wall,
+      motor_mount_width=motor_mount_width,
+      motor_mount_inner_r=motor_mount_inner_r,
+      motor_shaft_h=motor_shaft_h,
+      motor_shaft_pos=motor_shaft_pos,
+      motor_size=motor_size,
+      fist_bearing_screw_angular_pos=fist_bearing_screw_angular_pos,
+      invert_motor=invert_motor,
+      angle=angle
     );
 
     //first bearing
@@ -558,127 +493,6 @@ bearing_width +ST;
   }
 }
 
-module idler(
-  lwall=WALL_WIDTH,
-  wall=STRUCTURAL_WALL_WIDTH,
-  axis_h=HOBBED_BOLT_DIAMETER/2,
-  hsupport=HORIZONTAL_SUPPORT_WALL,
-  idler_h=IDLER_H -0.4,
-  width=IDLER_W -0.4,
-  bearing_r=5.0,
-  bearing_bore_r=1.7,
-  bearing_width=4.4,
-  bearing_screw_head_r = 3,
-  bearing_screw_head_h = 3,
-  bearing_screw_nut_width = 5.8,
-  bearing_screw_nut_h = 3,
-  screw_r=1.8,
-  screw_nut_r=IDLER_PRESSURE_SCREW_NUT_WIDTH/(2*cos(30)),
-  screw_nut_h=IDLER_PRESSURE_SCREW_NUT_H,
-  second_pos=8,
-  pressure_screw_z=IDLER_PRESSURE_SCREW_Z_POS,
-  pressure_screw_y=IDLER_PRESSURE_SCREW_Y_POS,
-  filament_room_r=FILAMENT_ROOM_DIAMETER/2,
-  guide_h=9
-) {
-  difference(){
-    union() {
-      cube([width, second_pos + screw_r +lwall, idler_h]);
-      translate([0, 0, axis_h])
-        rotate([0,90,0])
-          cylinder(r=bearing_r - ST, h=width);
-
-      //filament guide arm
-      //translate([width/2 + filament_room_r,0, pressure_screw_z - screw_r])
-      //mirror([0,1,0])
-      //  cube([wall, guide_h, wall]);
-    }
-    translate([width/2 + bearing_width/2, 0, axis_h])
-      rotate([0,-90,0])
-        #cylinder(r=bearing_r+2*HORIZONTAL_SUPPORT_WALL, h=bearing_width);
-
-    //bearing screw
-    translate([-1, 0, axis_h])
-      rotate([0,90,0])
-        #cylinder(r=bearing_bore_r, h=width+2);
-    translate([-1, 0, axis_h])
-      rotate([0,90,0])
-        #cylinder(r=bearing_screw_head_r, h=bearing_screw_head_h +1);
-    translate([width - bearing_screw_nut_h, 0, axis_h])
-      rotate([0,90,0])
-        #cylinder(r=bearing_screw_nut_width/(2*cos(30)),
-                  h=bearing_screw_nut_h +1,
-                  $fn=6);
-
-    translate([width/2 -pressure_screw_y,
-               -screw_nut_h - 1.1*hsupport,
-               pressure_screw_z])
-       rotate([-90,0,0])
-         #cylinder(r=screw_r, h=second_pos + lwall + screw_r + 2*ST);
-
-    translate([width/2 -pressure_screw_y,
-              second_pos + lwall + screw_r - screw_nut_h,
-              pressure_screw_z])
-       rotate([-90,0,0]) rotate([0,0,30])
-         #cylinder(r=screw_nut_r, h=second_pos + lwall + screw_r + 2*ST, $fn=6);
-  }
-}
-
-module idler_holder(
-  lwall=WALL_WIDTH,
-  wall=STRUCTURAL_WALL_WIDTH,
-  axis_h=HOBBED_BOLT_DIAMETER/2,
-  idler_h=IDLER_H,
-  width=IDLER_W,
-  idler_length=10,
-  idler_holder_screw_r=IDLER_HOLDER_SCREW_DIAMETER/2,
-  guide_r=FILAMENT_ROOM_DIAMETER/2,
-  guide_h=10,
-  guide_pos=HOTEND_BODY_DIAMETER/2 + IDLER_HOLDER_SCREW_HEAD_DIAMETER/2 +
-            WALL_WIDTH,
-  vsupport=HORIZONTAL_SUPPORT_WALL,
-  hsupport=VERTICAL_SUPPORT_WALL
-) {
-  difference() {
-    union() {
-      translate([-lwall - 2*idler_holder_screw_r,
-                 -wall - idler_holder_screw_r,
-                 -guide_h + lwall])
-        difference()
-      {
-        cube([width + 2*lwall +4*idler_holder_screw_r,
-              2*wall + 2*idler_holder_screw_r,
-              guide_h + idler_h]);
-        translate([vsupport, vsupport, -1])
-          #cube([width + 2*lwall +4*idler_holder_screw_r - 2*vsupport,
-                 2*wall + 2*idler_holder_screw_r - 2*vsupport,
-                 guide_h - lwall +1]);
-      }
-      translate([width/2 -lwall - guide_r,
-                 0,
-                 -guide_h + lwall])
-         cube([2*(guide_r + lwall), guide_pos, guide_h]);
-
-      translate([width/2, guide_pos, -guide_h + lwall])
-        cylinder(r=guide_r + lwall, h=guide_h);
-
-      translate([-idler_holder_screw_r, 0, 0])
-        cylinder(r=idler_holder_screw_r + lwall, h=lwall + idler_h);
-      translate([width + idler_holder_screw_r, 0, 0])
-        cylinder(r=idler_holder_screw_r + lwall, h=lwall + idler_h);
-    }
-    translate([-ST, -wall - idler_holder_screw_r -1, lwall +ST])
-        cube([width + 2*ST, 2*wall + 2*idler_holder_screw_r +2, idler_h +1]);
-    translate([-idler_holder_screw_r, 0, hsupport])
-      cylinder(r=idler_holder_screw_r, h=lwall + idler_h +2);
-    translate([width + idler_holder_screw_r, 0, hsupport])
-      cylinder(r=idler_holder_screw_r, h=lwall + idler_h +2);
-
-    translate([width/2, guide_pos, -guide_h + lwall -1])
-      #cylinder(r=guide_r, h=guide_h +2);
-  }
-}
-
 module motor_mount(r=14, screw_mount=26, wall=5, screw_r=1.7, screw_w=2) {
   w = screw_mount + 2*screw_r + 2*screw_w;
   difference() {
@@ -692,9 +506,6 @@ module motor_mount(r=14, screw_mount=26, wall=5, screw_r=1.7, screw_w=2) {
     }
     translate([0,0,-1])
       #cylinder(r=r, h=wall+2);
-    //rotate([0,0,-135])
-    //translate([-w/sqrt(2)-1,2*screw_r,-1])
-    //  #cube([w*sqrt(2) +2, w, wall+2]);
   }
 }
 
