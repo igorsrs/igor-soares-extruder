@@ -21,7 +21,10 @@ include <configuration.scad>
 
 $fn=64;
 
-mirror([0,1,0]) extruder_with_support();
+mirror([0,1,0]) extruder_with_support(
+  fist_bearing_screw_angular_pos=150,
+  base_screw_nut_r=13/2,
+  motor_mount_inner_r=15);
 
 module extruder_base(
   wall=STRUCTURAL_WALL_WIDTH,
@@ -95,6 +98,7 @@ module extruder(
   base_screw_r=BASE_SCREWS_DIAMETER/2,
   base_screw_nut_r=BASE_SCREWS_NUT_WIDTH/(2*cos(30)),
   screw_hotend_distance=BASE_SCREW_HOTEND_DISTANCE,
+  angle_base = 0,
   hotend_body_r=HOTEND_BODY_DIAMETER/2,
   hotend_body_above_groove_h=HOTEND_BODY_ABOVE_GROOVE_H,
   bearing_r=BEARING_DIAMETER/2,
@@ -124,6 +128,8 @@ module extruder(
   motor_size=MOTOR_SIZE,
   fist_bearing_screw_angular_pos=FIST_BEARING_SCREW_ANGLE,
   invert_motor=INVERT_MOTOR_SIDE,
+  diagonal_reinforcement=false,
+  
   angle=ANGLE
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
@@ -165,9 +171,15 @@ bearing_width +ST;
   );
   invert_motor_flag=(invert_motor) ? 1 : 0;
 
+  motor_arms = 1.5*wall;
+  motor_arm_reference = (motor_size[0]/2 - motor_shaft_pos + motor_arms);
+  motor_diagonal_arm_reference = motor_shaft_h - motor_arm_reference - wall;
+  motor_diagonal_arm_angle = 90-atan2(motor_diagonal_arm_reference,
+                                   -first_bearing_pos + lwall + bearing_width + second_bearing_pos);
+
   difference() {
     union() {
-      extruder_base(
+      rotate([0,0,angle_base]) extruder_base(
         wall=wall,
         base_screw_r=base_screw_r,
         base_screw_nut_r=base_screw_nut_r,
@@ -179,11 +191,18 @@ bearing_width +ST;
       cylinder(r=hotend_body_r +wall, h=hotend_body_above_groove_h);
 
       //first bearing
-      translate([first_bearing_pos - lwall, axis_pos, axis_h]) 
-        rotate([0,90,0])
-          cylinder(r=bearing_r + wall, h=bearing_width + lwall);
+      translate([first_bearing_pos - bearing_width, axis_pos, axis_h]) 
+        rotate([0,90,0]) difference() {
+          cylinder(r=bearing_r + wall, h=2*bearing_width + lwall);
+          translate([-bearing_r - wall -1,
+                     -bearing_r - wall -1,
+                     -1])
+          #cube([2*(bearing_r + wall) +1,
+                 2*(bearing_r + wall) - wall +1,
+                 bearing_width +1]);
+      }
       //first bearing holding screw
-      translate([first_bearing_pos - lwall, axis_pos, axis_h]) 
+      translate([first_bearing_pos, axis_pos, axis_h]) 
         rotate([0,90,0]) rotate([0,0,fist_bearing_screw_angular_pos]) {
           translate([0, bearing_r + bearing_screw_r + ST, 0])
             cylinder(r=bearing_screw_r + wall,
@@ -197,7 +216,7 @@ bearing_width +ST;
       translate([second_bearing_pos, axis_pos, axis_h]) 
         rotate([0,90,0])
       {
-          for(a=[90]) rotate([0,0,a])
+          for(a=[90]) rotate([0,0,fist_bearing_screw_angular_pos])
             translate([0, bearing_r + bearing_screw_r + ST, 0])
               cylinder(r=bearing_screw_r + wall,
                        h=bearing_width + lwall);
@@ -215,10 +234,42 @@ bearing_width +ST;
                         wall=motor_mount_width,
                         screw_mount=motor_screw_mount,
                         screw_r=motor_screw_r);
+        translate([second_bearing_pos + lwall + bearing_width - wall,
+                   motor_shaft_pos - motor_mount_inner_r,
+                   motor_shaft_h - wall/2]) mirror([0,1,0])
+          cube([wall,
+                motor_size[0]/2 -
+                  motor_mount_inner_r + 2*wall,
+                motor_arms / abs(cos(motor_diagonal_arm_angle))]);
+        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
+          cube([
+            motor_arms,
+            motor_arm_reference/abs(cos(135)),
+            wall]);
+        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
+          translate([
+            0,
+            motor_arm_reference/abs(cos(135)),
+            wall]) rotate([-135,0,0])
+              cube([motor_arms,motor_arms,wall]);
+        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h + wall]) rotate([135,0,0])
+          translate([
+            0,
+            motor_arm_reference/abs(cos(135)),
+            wall]) rotate([-135,0,0]) rotate([0, motor_diagonal_arm_angle, 0])
+              cube([motor_arms,motor_arms,motor_diagonal_arm_reference/abs(cos(motor_diagonal_arm_angle))]);
+
         //base
-        translate([second_bearing_pos + lwall + bearing_width, 0, 0])
-          mirror([1,0,0]) cube([motor_mount_width, motor_holder_size_from_axis,
-                                motor_holder_size_from_base +ST]);
+        translate([second_bearing_pos + lwall + bearing_width - wall, 0, 0])
+          difference() {
+           cube([motor_mount_width,
+                 motor_holder_size_from_axis,
+                 motor_holder_size_from_base +ST]);
+           translate([-1,motor_holder_size_from_axis, motor_holder_size_from_base])
+              rotate([-135,0,0]) #cube([motor_mount_width +2,
+                 motor_holder_size_from_axis,
+                 motor_holder_size_from_base +ST]);
+        }
         //inter bearing reinforcement
         translate([first_bearing_pos, motor_pos, axis_h - lwall/2])
           mirror([0,1,0])
@@ -226,12 +277,13 @@ bearing_width +ST;
                 wall, lwall]);
 
         //diagonal reinforcement
-        translate([ST, flat_bottom_bearing_width/2, 0])
-          rotate([0,0,angle_diagonal])
-            cube([wall,
-                  (motor_holder_size_from_axis - flat_bottom_bearing_width/2)/
-                    cos(angle_diagonal),
-                  motor_holder_size_from_base]);
+        if (diagonal_reinforcement)
+          translate([ST, flat_bottom_bearing_width/2, 0])
+            rotate([0,0,angle_diagonal])
+              cube([wall,
+                    (motor_holder_size_from_axis - flat_bottom_bearing_width/2)/
+                      cos(angle_diagonal),
+                    motor_holder_size_from_base]);
 
         //diagonal reinforcement in the mount plate plane
         translate([second_bearing_pos +bearing_width + lwall - wall,
@@ -253,6 +305,9 @@ bearing_width +ST;
               wall]);
 
       //pressure screw wall
+      translate([wall_support_pos[0], wall_support_pos[1],0])
+        cylinder(r=idler_holder_screw_head_r + vsupport,
+                  h=idler_holder_screw_head_room_h + hsupport);
       translate([-hotend_body_r, 0,0])
         cube([2*hotend_body_r, axis_pos + bearing_access_r + wall,
               hotend_body_above_groove_h]);
@@ -278,7 +333,7 @@ bearing_width +ST;
               2*(idler_holder_screw_r + wall),
               hotend_body_above_groove_h], center=true);
     }
-    #extruder_base_screws(
+    rotate([0,0,angle_base]) #extruder_base_screws(
       wall=STRUCTURAL_WALL_WIDTH,
       lwall=lwall,
       base_screw_r=base_screw_r,
@@ -297,7 +352,7 @@ bearing_width +ST;
         #cylinder(r=hobbed_bolt_r, h=2*hotend_body_r);
 
     //bearings for the hobbed bolt
-    translate([first_bearing_pos, axis_pos, axis_h]) 
+    translate([first_bearing_pos - bearing_width, axis_pos, axis_h]) 
       rotate([0,90,0])
         #cylinder(r=bearing_r,
                   h=2*bearing_width);
@@ -317,7 +372,7 @@ bearing_width +ST;
     translate([second_bearing_pos -1, axis_pos, axis_h]) 
       rotate([0,90,0])
     {
-        for(a=[90]) rotate([0,0,a])
+        for(a=[90]) rotate([0,0,fist_bearing_screw_angular_pos])
           translate([0, bearing_r + bearing_screw_r + ST, 0])
         #cylinder(r=bearing_screw_r,
                   h=bearing_width + lwall +2);
@@ -470,13 +525,13 @@ bearing_width +ST;
     );
 
     //first bearing
-    translate([first_bearing_pos - lwall, axis_pos, axis_h + ST])
+    translate([first_bearing_pos + bearing_width, axis_pos, axis_h + ST])
       rotate([0,90,0])
         cylinder(r=bearing_access_r, h=vsupport);
-    translate([first_bearing_pos, axis_pos, axis_h + ST])
+    translate([first_bearing_pos + bearing_width + lwall, axis_pos, axis_h + ST])
       rotate([0,-90,0])
         cylinder(r=bearing_access_r, h=vsupport);
-    translate([first_bearing_pos + bearing_width, axis_pos, axis_h + ST])
+    translate([first_bearing_pos + vsupport, axis_pos, axis_h + ST])
       rotate([0,-90,0])
         cylinder(r=bearing_r, h=vsupport);
 
@@ -493,19 +548,23 @@ bearing_width +ST;
   }
 }
 
-module motor_mount(r=14, screw_mount=26, wall=5, screw_r=1.7, screw_w=2) {
+module motor_mount(r=14, screw_mount=26, wall=5, lwall=WALL_WIDTH, screw_r=1.7, screw_w=2) {
   w = screw_mount + 2*screw_r + 2*screw_w;
   difference() {
     union() {
       translate([-w/2, -w/2, 0])
       cube([w,w, wall]);
+      for(a=[45,135,225,315]) rotate([0,0,a]) {
+        translate([screw_mount/sqrt(2), 0, wall-ST])
+          cylinder(r1=screw_r + 2*lwall, r2=screw_r + lwall, h=lwall);
+      }
     }
     for(a=[45,135,225,315]) rotate([0,0,a]) {
       translate([screw_mount/sqrt(2), 0, -1])
-        #cylinder(r=screw_r, h=wall +2);
+        #cylinder(r=screw_r, h=wall + lwall + 2);
     }
     translate([0,0,-1])
-      #cylinder(r=r, h=wall+2);
+      #cylinder(r=r, h=wall + lwall + 2);
   }
 }
 
