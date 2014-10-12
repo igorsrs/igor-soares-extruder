@@ -22,9 +22,10 @@ include <configuration.scad>
 $fn=64;
 
 mirror([0,1,0]) extruder_with_support(
-  fist_bearing_screw_angular_pos=150,
+  fist_bearing_screw_angular_pos=130,
   base_screw_nut_r=13/2,
-  motor_mount_inner_r=15);
+  motor_mount_inner_r=15,
+  diagonal_reinforcement=true);
 
 module extruder_base(
   wall=STRUCTURAL_WALL_WIDTH,
@@ -129,7 +130,6 @@ module extruder(
   fist_bearing_screw_angular_pos=FIST_BEARING_SCREW_ANGLE,
   invert_motor=INVERT_MOTOR_SIDE,
   diagonal_reinforcement=false,
-  
   angle=ANGLE
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
@@ -162,7 +162,8 @@ bearing_width +ST;
   angle_diagonal = -atan(
                      (second_bearing_pos + lwall + bearing_width
                         - motor_mount_width)/
-                     (motor_holder_size_from_axis - flat_bottom_bearing_width/2)
+                     (motor_holder_size_from_axis - flat_bottom_bearing_width/2
+- screw_hotend_distance)
                    );
   mount_plante_diagonal_angle = -atan(
     ((bearing_r + wall) + (motor_shaft_pos -motor_screw_mount/2 -
@@ -234,30 +235,34 @@ bearing_width +ST;
                         wall=motor_mount_width,
                         screw_mount=motor_screw_mount,
                         screw_r=motor_screw_r);
-        translate([second_bearing_pos + lwall + bearing_width - wall,
-                   motor_shaft_pos - motor_mount_inner_r,
-                   motor_shaft_h - wall/2]) mirror([0,1,0])
-          cube([wall,
-                motor_size[0]/2 -
-                  motor_mount_inner_r + 2*wall,
-                motor_arms / abs(cos(motor_diagonal_arm_angle))]);
-        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
-          cube([
-            motor_arms,
-            motor_arm_reference/abs(cos(135)),
-            wall]);
-        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
-          translate([
-            0,
-            motor_arm_reference/abs(cos(135)),
-            wall]) rotate([-135,0,0])
-              cube([motor_arms,motor_arms,wall]);
-        translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h + wall]) rotate([135,0,0])
-          translate([
-            0,
-            motor_arm_reference/abs(cos(135)),
-            wall]) rotate([-135,0,0]) rotate([0, motor_diagonal_arm_angle, 0])
-              cube([motor_arms,motor_arms,motor_diagonal_arm_reference/abs(cos(motor_diagonal_arm_angle))]);
+
+        //diagonal reinforcement to motor in the upper side
+        if (!diagonal_reinforcement) union() {
+          translate([second_bearing_pos + lwall + bearing_width - wall,
+                     motor_shaft_pos - motor_mount_inner_r,
+                     motor_shaft_h - wall/2]) mirror([0,1,0])
+            cube([wall,
+                  motor_size[0]/2 -
+                    motor_mount_inner_r + 2*wall,
+                  motor_arms / abs(cos(motor_diagonal_arm_angle))]);
+          translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
+            cube([
+              motor_arms,
+              motor_arm_reference/abs(cos(135)),
+              wall]);
+          translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h]) rotate([135,0,0])
+            translate([
+              0,
+              motor_arm_reference/abs(cos(135)),
+              wall]) rotate([-135,0,0])
+                cube([motor_arms,motor_arms,wall]);
+          translate([first_bearing_pos - motor_arms + bearing_width, 0, axis_h + wall]) rotate([135,0,0])
+            translate([
+              0,
+              motor_arm_reference/abs(cos(135)),
+              wall]) rotate([-135,0,0]) rotate([0, motor_diagonal_arm_angle, 0])
+                cube([motor_arms,motor_arms,motor_diagonal_arm_reference/abs(cos(motor_diagonal_arm_angle))]);
+        }
 
         //base
         translate([second_bearing_pos + lwall + bearing_width - wall, 0, 0])
@@ -265,6 +270,7 @@ bearing_width +ST;
            cube([motor_mount_width,
                  motor_holder_size_from_axis,
                  motor_holder_size_from_base +ST]);
+           if (!diagonal_reinforcement)
            translate([-1,motor_holder_size_from_axis, motor_holder_size_from_base])
               rotate([-135,0,0]) #cube([motor_mount_width +2,
                  motor_holder_size_from_axis,
@@ -278,11 +284,11 @@ bearing_width +ST;
 
         //diagonal reinforcement
         if (diagonal_reinforcement)
-          translate([ST, flat_bottom_bearing_width/2, 0])
+          translate([ST, flat_bottom_bearing_width/2 + screw_hotend_distance, 0])
             rotate([0,0,angle_diagonal])
               cube([wall,
-                    (motor_holder_size_from_axis - flat_bottom_bearing_width/2)/
-                      cos(angle_diagonal),
+                    (motor_holder_size_from_axis - flat_bottom_bearing_width/2 -
+                    screw_hotend_distance)/cos(angle_diagonal),
                     motor_holder_size_from_base]);
 
         //diagonal reinforcement in the mount plate plane
@@ -475,6 +481,7 @@ module extruder_with_support(
   motor_size=MOTOR_SIZE,
   fist_bearing_screw_angular_pos=FIST_BEARING_SCREW_ANGLE,
   invert_motor=INVERT_MOTOR_SIDE,
+  diagonal_reinforcement=false,
   angle=ANGLE
 ) {
   axis_pos=filament_r + hobbed_bolt_r;
@@ -521,6 +528,7 @@ bearing_width +ST;
       motor_size=motor_size,
       fist_bearing_screw_angular_pos=fist_bearing_screw_angular_pos,
       invert_motor=invert_motor,
+      diagonal_reinforcement=diagonal_reinforcement,
       angle=angle
     );
 
